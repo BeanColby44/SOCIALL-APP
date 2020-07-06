@@ -17,48 +17,100 @@ import * as authActions from '../../store/actions/auth';
 import { useDispatch } from 'react-redux';
 import Colors from '../../constants/Colors';
 
-const AuthScreen = () => {
+const AuthScreen = (props) => {
 
     const [isSignup, setIsSignUp] = useState(false);
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+
     const [error, setError] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [success, setSuccess] = useState(null);
-    
+
 
     const dispatch = useDispatch();
-    
+
+    const validateAuthForm = () => {
+        const emailRegex = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+        const passwordRegex = /\d/
+        if(isSignup && !name){
+            setError('Please enter a valid name.');
+            setIsLoading(false);
+            return false;
+        }
+        if(isSignup && name && name.length < 2){
+            setError('Please enter a valid name.');
+            setIsLoading(false);
+            return false;
+        }
+        if(!emailRegex.test(email.toLowerCase())){
+            setError('Please enter a valid email.')
+            setIsLoading(false);
+            return false;
+        }
+        if(!password || password.length === 0){
+            setError('Please enter your password.')
+            setIsLoading(false);
+            return false;
+        }
+        if(isSignup && password.length < 6){
+            setError('Password should be atleast 6 characters long.')
+            setIsLoading(false);
+            return false;
+
+        }
+        if(isSignup && !passwordRegex.test(password)){
+            setError('Password should contain atleast 1 number.')     
+            setIsLoading(false);
+            return false;
+        }
+        return true;
+    }
+
+
     const AuthHandler = async () => {
         setError(null);
         setSuccess(null);
         setIsLoading(true);
-        if(isSignup){
-            try {
-                const msg =await dispatch(authActions.signup(name, email, password))
-                setSuccess(msg);
-                setIsSignUp(false);
-                setName('');
-                setEmail('');
-                setPassword('');
-            } catch (error) {
-                setError(error.message);
-            }
-        } else {
-            try {
-                await dispatch(authActions.signin(email, password))
-            } catch (error) {
-                setError(error.message);
+        if(validateAuthForm()){
+            if(isSignup){
+                try {
+                    const msg = await dispatch(authActions.signup(name, email, password))
+                    setSuccess(msg);
+                    setIsSignUp(false);
+                    setName('');
+                    setEmail('');
+                    setPassword('');
+                } catch (error) {
+                    setError(error.message);
+                }
+                setIsLoading(false);
+            } else {
+                try {
+                    await dispatch(authActions.signin(email, password))
+                } catch (error) {
+                    setError(error.message);
+                    setIsLoading(false);
+                }
             }
         }
-        setIsLoading(false);
     };
 
+    const inputChangeHandler = (text,inputField) => {
+        if(inputField === 1){
+            setName(text)
+        } else if(inputField === 2){
+            setEmail(text)
+        } else if(inputField === 3){
+            setPassword(text)
+        }
+        setError(null);
+        setSuccess(null);
+    }
 
 
     return (
-
             <View style={styles.container}>
                 <Image style={styles.bgImage} source={require('../../assets/bg-auth.png')} />
                 <View style={styles.titleContainer} >
@@ -84,9 +136,9 @@ const AuthScreen = () => {
                             placeholder="Name"
                             underlineColorAndroid='transparent'
                             value={name}
-                            onChangeText={(text) => setName(text) }
+                            onChangeText={(text) => inputChangeHandler(text,1)}
                         />
-                        <Image style={styles.inputIcon} source={{ uri: 'https://img.icons8.com/carbon-copy/100/000000/name.png' }} />
+                        <Image style={styles.inputIcon} source={{ uri: 'https://img.icons8.com/nolan/40/000000/name.png' }} />
                     </View>
                 ) }
                 
@@ -96,7 +148,7 @@ const AuthScreen = () => {
                         keyboardType="email-address"
                         underlineColorAndroid='transparent'
                         value={email}
-                        onChangeText={(text) => setEmail(text) }
+                        onChangeText={(text) => inputChangeHandler(text, 2) }
                     />
                     <Image style={styles.inputIcon} source={{ uri: 'https://img.icons8.com/nolan/40/000000/email.png' }} />
                 </View>
@@ -107,12 +159,15 @@ const AuthScreen = () => {
                         secureTextEntry={true}
                         underlineColorAndroid='transparent'
                         value={password}
-                        onChangeText={(text) => setPassword(text) }
+                        onChangeText={(text) => inputChangeHandler(text, 3) }
                     />
                     <Image style={styles.inputIcon} source={{ uri: 'https://img.icons8.com/nolan/40/000000/key.png' }} />
                 </View>
 
-                <TouchableOpacity style={styles.btnForgotPassword} >
+                <TouchableOpacity 
+                    onPress={() => props.navigation.navigate('ForgotPassword')}
+                    style={styles.btnForgotPassword} 
+                >
                     <Text style={styles.btnText}>Forgot your password?</Text>
                 </TouchableOpacity>
 
@@ -132,19 +187,30 @@ const AuthScreen = () => {
                 </TouchableOpacity>
 
 
-                <TouchableOpacity style={styles.buttonContainer}>
-                    <Text 
-                        style={styles.btnText} 
-                        onPress={() => {
-                            setIsSignUp(prevState => !prevState);
-                        }} 
-                    >
-                        { isSignup ? "Login" : "Register" }
+                <TouchableOpacity 
+                    style={[styles.buttonContainer, styles.registerButton]}
+                    onPress={() => {
+                        setIsSignUp(prevState => !prevState);
+                    }}
+                >
+                    <Text style={styles.btnText} >
+                        { isSignup ? "Already a user ? Login" : "Don't have an account ? Register" }
                     </Text>
                 </TouchableOpacity>
             </View>    
     );
 }
+
+
+export const screenOptions = (navData) => {
+    return{
+        headerTitle: 'Auth',
+        
+    }
+}
+
+
+
 
 const resizeMode = 'center';
 
@@ -159,9 +225,21 @@ const styles = StyleSheet.create({
         marginBottom: 40,
     },  
     title: {
-        fontSize: 34,
+        fontSize: 42,
         color: '#fff',
         fontWeight: 'bold',
+
+        textShadowOffset: {width: 0,height: 1},
+        textShadowRadius: 1,
+        textShadowColor: 'black',
+
+        textShadowOffset: {width: 1,height: 1},
+        textShadowRadius: 1,
+        textShadowColor: '#ccc',
+
+        textShadowOffset: {width: 2,height: 2},
+        textShadowRadius: 1,
+        textShadowColor: 'black',
     },
 
     errorMsgContainer:{
@@ -268,6 +346,19 @@ const styles = StyleSheet.create({
 
         elevation: 19,
     },
+    registerButton: {
+        backgroundColor: Colors.lightPrimary,
+
+        shadowColor: "#808080",
+        shadowOffset: {
+            width: 0,
+            height: 9,
+        },
+        shadowOpacity: 0.50,
+        shadowRadius: 12.35,
+
+        elevation: 19,
+    },
     loginText: {
         color: 'white',
     },
@@ -283,6 +374,10 @@ const styles = StyleSheet.create({
         fontWeight: 'bold'
     }
 }); 
+
+
+
+
 
 
 export default AuthScreen;
